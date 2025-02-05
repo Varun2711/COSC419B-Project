@@ -25,7 +25,7 @@ def get_conda_envs():
     stream = os.popen("conda env list")
     output = stream.read()
     a = output.split()
-    a.remove("*")
+    # a.remove("*")
     a.remove("#")
     a.remove("#")
     a.remove("conda")
