@@ -20,11 +20,17 @@
 
   
 
-- In the paper they use a Transformer-based autoregressive sequence model _(Scene Text Recognition with Permuted Autoregressive Sequence Models)_.
-- Could be replaced using a simpler/faster model
--- _JEDE: Universal Jersey Number Detector for Sports (Also cited by this paper)_
--- _Multi-task Learning for Jersey Number Recognition in Ice Hockey (Also cited by this paper)_
--- _Automatic Team Assignment and Jersey Number Recognition in Football Videos_
--- _Generalized Jersey Number Recognition Using Multi-task Learning With Orientation-guided Weight Refinement_
--- Handwriting recognition model (Alex's idea)
--- A3 model?
+* In the paper they use a Transformer-based autoregressive sequence model _(Scene Text Recognition with Permuted Autoregressive Sequence Models)_.
+* Could be replaced using a simpler/faster model:
+  
+  * _JEDE: Universal Jersey Number Detector for Sports (Also cited by this paper):_ [https://ieeexplore.ieee.org/abstract/document/9810931](https://ieeexplore.ieee.org/abstract/document/9810931)
+  
+  * _Multi-task Learning for Jersey Number Recognition in Ice Hockey (Also cited by this paper):_ [https://ieeexplore.ieee.org/abstract/document/9810931](https://dl.acm.org/doi/abs/10.1145/3475722.3482794) 
+  
+  * _Automatic Team Assignment and Jersey Number Recognition in Football Videos_
+  
+  * _Generalized Jersey Number Recognition Using Multi-task Learning With Orientation-guided Weight Refinement:_ [https://arxiv.org/abs/2406.01033](https://arxiv.org/abs/2406.01033)
+  
+  * Handwriting recognition model (Alex's idea)
+  
+  * A3 model?
