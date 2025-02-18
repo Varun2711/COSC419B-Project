@@ -12,7 +12,7 @@
 
 - Most time-consuming part
 - Didn't remove too many images. After filtering, there were still about 100,000 images left.
-- As a supplement, when the model will predict the value of each category [0.2, 0.4, 0.1, …], the category with the maximum value must be greater than a threshold (e.g. 0.6). (Alex's idea)
+- As a supplement, when the model predicts each category's value [0.2, 0.4, 0.1, …], the category with the maximum value must be greater than a threshold (e.g., 0.6). (Alex's idea)
 
   
 
@@ -20,7 +20,7 @@
 
   
 
-* In the paper they use a Transformer-based autoregressive sequence model _(Scene Text Recognition with Permuted Autoregressive Sequence Models)_.
+* The paper uses a Transformer-based autoregressive sequence model _(Scene Text Recognition with Permuted Autoregressive Sequence Models)_.
 * Could be replaced using a simpler/faster model:
   
   * _JEDE: Universal Jersey Number Detector for Sports (Also cited by this paper):_ [https://ieeexplore.ieee.org/abstract/document/9810931](https://ieeexplore.ieee.org/abstract/document/9810931)
@@ -30,6 +30,10 @@
   * _Automatic Team Assignment and Jersey Number Recognition in Football Videos_
   
   * _Generalized Jersey Number Recognition Using Multi-task Learning With Orientation-guided Weight Refinement:_ [https://arxiv.org/abs/2406.01033](https://arxiv.org/abs/2406.01033)
+
+    * Using ResNet50 as the backbone, which extracts 512-dimensional features.
+    * After feature extraction, the model has four parallel fully connected layers, each corresponding to a different task: overall probability, probability of tens-digit numbers, probability of ones-digit numbers, and probability of the number of digits.
+    * Uses human body orientation computed using HRNet to improve digit recognition.
   
   * Handwriting recognition model (Alex's idea)
   
