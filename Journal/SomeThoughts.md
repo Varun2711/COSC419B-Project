@@ -28,7 +28,9 @@
     * Then an MLP classifier determines the number of digits (0, 1, or 2).
     * Finally, the digit branch classifies each detected digit (0-9), and a post-processing step pairs digits together if necessary to generate the final jersey number.
   
-  * _Multi-task Learning for Jersey Number Recognition in Ice Hockey (Also cited by this paper):_ [https://ieeexplore.ieee.org/abstract/document/9810931](https://dl.acm.org/doi/abs/10.1145/3475722.3482794) 
+  * _Multi-task Learning for Jersey Number Recognition in Ice Hockey (Also cited by this paper):_ [https://ieeexplore.ieee.org/abstract/document/9810931](https://dl.acm.org/doi/abs/10.1145/3475722.3482794)
+    * built on ResNet-34, which produces 512-dimensional feature representations.
+    * These 512-dimensional features are then fed into three separate fully connected layers, each producing different probability outputs: Holistic Representation Layer (81-dimensional), First-Digit Layer (11-dimensional), Second-Digit Layer (another 11-dimensional)
   
   * _Automatic Team Assignment and Jersey Number Recognition in Football Videos_
   
