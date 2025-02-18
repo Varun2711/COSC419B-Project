@@ -24,6 +24,7 @@
 * Could be replaced using a simpler/faster model:
   
   * _JEDE: Universal Jersey Number Detector for Sports (Also cited by this paper):_ [https://ieeexplore.ieee.org/abstract/document/9810931](https://ieeexplore.ieee.org/abstract/document/9810931)
+    * In our case we may skip all the previous steps and only focus on how they do the final jersey number recognition.
     * First predicts digit centers and bounding box sizes using pose-guided heatmap regression.
     * Then an MLP classifier determines the number of digits (0, 1, or 2).
     * Finally, the digit branch classifies each detected digit (0-9), and a post-processing step pairs digits together if necessary to generate the final jersey number.
@@ -33,6 +34,8 @@
     * These 512-dimensional features are then fed into three separate fully connected layers, each producing different probability outputs: Holistic Representation Layer (81-dimensional), First-Digit Layer (11-dimensional), Second-Digit Layer (another 11-dimensional)
   
   * _Automatic Team Assignment and Jersey Number Recognition in Football Videos_
+    * The head of YOLOv5 consists of 3 layers: Bounding Box Prediction Layer, Class Probability Layer and Objectness Score Layer. In our case, we could just focus on the Class Probability Layer.
+    * The standard YOLOv5 model detects 80 general objects (e.g., person, car, dog) using COCO dataset classes. The researchers removed the original YOLOv5 classification head and added a new classification head specifically trained to recognize numbers from 0 to 99.
   
   * _Generalized Jersey Number Recognition Using Multi-task Learning With Orientation-guided Weight Refinement:_ [https://arxiv.org/abs/2406.01033](https://arxiv.org/abs/2406.01033)
 
