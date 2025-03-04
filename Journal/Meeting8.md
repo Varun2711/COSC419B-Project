@@ -10,4 +10,4 @@
 
 ### Next week goals:
 
-- Add code from the `jersey-number-pipeline` repository to our repository, which will serve as a base for our pipeline
+- Add any necessary code from the `jersey-number-pipeline` repository to our repository, which will serve as a base for our pipeline
