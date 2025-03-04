@@ -1,4 +1,4 @@
-# Group meeting 2
+# Group meeting 3
 
 ## February 3, 2025
 
