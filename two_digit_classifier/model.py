@@ -1,9 +1,13 @@
+import os
+import certifi
 import torch.nn as nn
 from torchvision import models
 
 class TwoDigitClassifier(nn.Module):
     def __init__(self):
         super().__init__()
+
+        os.environ["SSL_CERT_FILE"] = certifi.where()
         # Load pre-trained ResNet18
         self.backbone = models.resnet18(pretrained=True)
         

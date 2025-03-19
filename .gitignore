@@ -4,3 +4,4 @@ venv_dlp/
 *.jpg
 out
 jersey-number-pipeline.zip
+*__pycache__/

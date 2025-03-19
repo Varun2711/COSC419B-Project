@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import DataLoader
+from torchvision import transforms
 from dataset import StructuredJerseyNumberDataset, AllInOneJerseyNumberDataset
 from model import TwoDigitClassifier
 
@@ -12,18 +13,18 @@ test_transform = transforms.Compose([
 
 # Load test dataset (choose one of the two methods)
 # Method 1: Structured folders
-test_dataset = StructuredJerseyNumberDataset(
-    image_dir="/data/test/images",
-    gt_file="/data/test/test_gt.json",
-    transform=test_transform
-)
-
-# Method 2: All-in-one folder
-# test_dataset = AllInOneJerseyNumberDataset(
+# test_dataset = StructuredJerseyNumberDataset(
 #     image_dir="/data/test/images",
 #     gt_file="/data/test/test_gt.json",
 #     transform=test_transform
 # )
+
+# Method 2: All-in-one folder
+test_dataset = AllInOneJerseyNumberDataset(
+    image_dir="../out/SoccerNetResults/crops_test/imgs",
+    gt_file="../data/SoccerNet/test/test_gt.json",
+    transform=test_transform
+)
 
 # Create DataLoader
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
