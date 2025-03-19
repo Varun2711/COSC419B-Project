@@ -21,13 +21,13 @@ class StructuredJerseyNumberDataset(Dataset):
             folder_path = os.path.join(image_dir, folder_name)
             for img_name in os.listdir(folder_path):
                 img_path = os.path.join(folder_path, img_name)
-                self.samples.append((img_path, label))
+                self.samples.append((img_path, label, folder_name))  # Add group ID
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        img_path, label = self.samples[idx]
+        img_path, label, group_id = self.samples[idx]
         image = Image.open(img_path).convert("RGB")
 
         if self.transform:
@@ -41,7 +41,7 @@ class StructuredJerseyNumberDataset(Dataset):
             digit1 = label // 10
             digit2 = label % 10
 
-        return image, (digit1, digit2)
+        return image, (digit1, digit2), group_id
 
 
 class AllInOneJerseyNumberDataset(Dataset):
@@ -57,19 +57,19 @@ class AllInOneJerseyNumberDataset(Dataset):
         # Iterate through all images in the folder
         for img_name in os.listdir(image_dir):
             img_path = os.path.join(image_dir, img_name)
-            folder_name = img_name.split("_")[0]  # Extract folder name from image name
-            label = self.gt.get(folder_name, -1)  # Get label from JSON
+            group_id = img_name.split("_")[0]  # Extract group ID from filename
+            label = self.gt.get(group_id, -1)  # Get label from JSON
 
             if label == -1:  # Skip invalid labels
                 continue
 
-            self.samples.append((img_path, label))
+            self.samples.append((img_path, label, group_id))  # Add group ID
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        img_path, label = self.samples[idx]
+        img_path, label, group_id = self.samples[idx]
         image = Image.open(img_path).convert("RGB")
 
         if self.transform:
@@ -83,4 +83,4 @@ class AllInOneJerseyNumberDataset(Dataset):
             digit1 = label // 10
             digit2 = label % 10
 
-        return image, (digit1, digit2)
+        return image, (digit1, digit2), group_id

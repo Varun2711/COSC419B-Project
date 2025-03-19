@@ -2,6 +2,7 @@
 venv_dlp/
 *.json
 *.jpg
-out
-jersey-number-pipeline.zip
+*.zip
+*.pth
 *__pycache__/
+out

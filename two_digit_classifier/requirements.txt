@@ -1,4 +1,4 @@
 certifi
 torch
 torchvision
-
+tqdm

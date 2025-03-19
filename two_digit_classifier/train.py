@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
+from tqdm import tqdm
 from dataset import StructuredJerseyNumberDataset, AllInOneJerseyNumberDataset
 from model import TwoDigitClassifier
 
@@ -31,7 +32,7 @@ train_dataset = AllInOneJerseyNumberDataset(
 )
 
 # Create DataLoader
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=4, prefetch_factor=2)
 
 # Initialize model, loss, and optimizer
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.mps.is_available() else "cpu")
@@ -44,7 +45,8 @@ for epoch in range(10):
     model.train()
     running_loss = 0.0
     
-    for images, (digits1, digits2) in train_loader:
+    train_loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/10", leave=False)
+    for images, (digits1, digits2) in train_loop:
         images = images.to(device)
         digits1 = digits1.to(device)
         digits2 = digits2.to(device)
