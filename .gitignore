@@ -1,0 +1,6 @@
+.DS_Store
+venv_dlp/
+*.json
+*.jpg
+out
+jersey-number-pipeline.zip
