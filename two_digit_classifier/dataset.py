@@ -84,3 +84,4 @@ class AllInOneJerseyNumberDataset(Dataset):
             digit2 = label % 10
 
         return image, (digit1, digit2), group_id
+

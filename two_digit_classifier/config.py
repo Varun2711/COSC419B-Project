@@ -5,6 +5,18 @@ from torch.mps import is_available as mps_available
 from torch import device as set_torch_device
 
 
+def update_config(key, value):
+    with open("config.txt", "r+") as f:
+        lines = f.readlines()
+        f.seek(0)
+        for line in lines:
+            if line.startswith(key):
+                f.write(f"{key} = {value}\n")
+            else:
+                f.write(line)
+        f.truncate()
+
+
 def get_config(require_mode=True, default_mode=None):
     """Unified configuration loader that combines:
     - Config file loading
@@ -39,14 +51,27 @@ def get_config(require_mode=True, default_mode=None):
         "--batch_size", type=int, default=32, help="Batch size for data loading"
     )
     parser.add_argument("--gpu", type=int, default=0, help="GPU device number to use")
-    parser.add_argument("--model_path", help="Override model path")
+
+    parser.add_argument("--model_dir", help="Override model path")
+    parser.add_argument("--saved_model", help="Model filename (test)")
+
+    parser.add_argument("--arch", default="resnet18", help="Model architecture (train)")
+    parser.add_argument(
+        "--epochs", type=int, default=10, help="Number of training epochs"
+    )
 
     args = parser.parse_args()
+
+    valid_arch_list = ["resnet18", "resnet34"]
 
     # Determine operation mode
     mode = args.mode if require_mode else default_mode
     if not mode:
         raise ValueError("Mode must be specified either through arguments or default")
+
+    # Add model type validation
+    if args.mode == "train" and args.arch and args.arch not in valid_arch_list:
+        raise ValueError("Unsupported model architecture")
 
     # Configure compute device
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
@@ -59,16 +84,35 @@ def get_config(require_mode=True, default_mode=None):
 
     # Resolve file paths
     resolved = {
+        "model_dir": config.get("model_dir", "models/"),
+        "saved_model": args.saved_model
+        or config.get("default_model", "resnet18_bs32_epoch10.pth"),
         "data_dir": args.data_dir or config.get(f"{mode}_data_dir"),
         "gt_file": args.gt_file or config.get(f"{mode}_gt_file"),
-        "model_path": args.model_path or config.get("model_path"),
     }
 
+    # Extract model architecture from filename
+    test_model_arch = resolved["saved_model"][: resolved["saved_model"].find("_")]
+    if args.mode == "test":
+        if test_model_arch in valid_arch_list:
+            args.arch = test_model_arch
+        else:
+            print(
+                f"Cannot parse architecture from file name {resolved['saved_model']}, will use {args.arch}."
+            )
+
     # Validate critical paths
-    for key in ["data_dir", "gt_file", "model_path"]:
+    for key in ["data_dir", "gt_file"]:
         if not resolved[key]:
             raise ValueError(
                 f"Missing required {key}. Provide via argument or config.txt"
             )
 
-    return {"mode": mode, "device": device, "batch_size": args.batch_size, **resolved}
+    return {
+        "mode": mode,
+        "device": device,
+        "batch_size": args.batch_size,
+        "model_arch": args.arch,
+        "epochs": args.epochs,
+        **resolved,
+    }

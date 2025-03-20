@@ -1,3 +1,4 @@
+import os
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -13,8 +14,9 @@ def test_model(cfg):
     data_dir = cfg["data_dir"]
     gt_file = cfg["gt_file"]
     batch_size = cfg["batch_size"]
-    model_path = cfg["model_path"]
     device = cfg["device"]
+    model_arch = cfg["model_arch"]
+    saved_model = cfg["saved_model"]
 
     test_transform = transforms.Compose(
         [
@@ -24,15 +26,18 @@ def test_model(cfg):
         ]
     )
 
+    print("Loading data from:", "\nimages:", data_dir, "\ngt:", gt_file)
     test_dataset = AllInOneJerseyNumberDataset(
         image_dir=data_dir, gt_file=gt_file, transform=test_transform
     )
 
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    model = TwoDigitClassifier().to(device)
-    model.load_state_dict(torch.load(model_path))
+    model = TwoDigitClassifier(model_arch).to(device)
+    model.load_state_dict(torch.load(os.path.join(cfg["model_dir"], saved_model)))
     model.eval()
+
+    print(f"Loaded model {model_arch} from {saved_model}")
 
     # Tracklet-level test
     accuracy = test_model_grouped(model, test_loader, device)
