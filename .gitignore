@@ -162,7 +162,3 @@ SoccerNetLegibility.zip
 out/*
 data/*
 models/*
-test_pipeline.txt
-legibility_log.txt
-*.txt
-*.log
