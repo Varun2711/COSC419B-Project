@@ -241,8 +241,10 @@ def soccer_net_pipeline(args):
     # 1. generate and store features for each image in each tracklet
     if args.pipeline['feat']:
         print("Generate features")
+        print(f"conda run -n {config.reid_env} python3 {config.reid_script} --tracklets_folder {image_dir} --output_folder {features_dir}")
         command = f"conda run -n {config.reid_env} python3 {config.reid_script} --tracklets_folder {image_dir} --output_folder {features_dir}"
         success = os.system(command) == 0
+        print("Success:", success)
         print("Done generating features")
 
     #2. identify and remove outliers based on features
