@@ -275,71 +275,51 @@ def train_model_with_sam_and_full_val(model, criterion, optimizer, num_epochs=25
     model.load_state_dict(best_model_wts)
     return model
 
+from tqdm import tqdm
+import torch
+import numpy as np
 
 def test_model(model, subset, result_path=None):
     model.eval()
-    running_corrects = 0
-    # Iterate over data.
-    temp_max = 500
-    temp_count = 0
-    predictions = []
+    results = []
+    tracks = []
     gt = []
-    raw_predictions = []
-    img_names = []
-    for inputs, labels, names in tqdm(dataloaders[subset]):
-        # print(f"input and label sizes:{len(inputs), len(labels)}")
-        temp_count += len(labels)
-        inputs = inputs.to(device)
-        labels = labels.reshape(-1, 1)
-        labels = labels.type(torch.FloatTensor)
-        labels = labels.to(device)
+    
+    with torch.no_grad():
+        for inputs, track, label in tqdm(dataloaders[subset], desc="Testing Progress", unit="batch"):
+            inputs = inputs.to(device)
 
-        # zero the parameter gradients
-        torch.set_grad_enabled(False)
-        outputs = model(inputs)
-        preds = outputs.round()
-        running_corrects += torch.sum(preds == labels.data)
-        if subset == 'train' and temp_count >= temp_max:
-            break
-        gt += labels.data.detach().cpu().numpy().flatten().tolist()
-        predictions += preds.detach().cpu().numpy().flatten().tolist()
-        raw_predictions += outputs.data.detach().cpu().numpy().flatten().tolist()
-        img_names += list(names)
+            torch.set_grad_enabled(False)
+            outputs = model(inputs)  # Use model instead of model_ft if it's already passed as an argument
 
-    if subset == 'train':
-        epoch_acc = running_corrects.double() / temp_count
-    else:
-        epoch_acc = running_corrects.double() / dataset_sizes[subset]
+            outputs = outputs.float()
+            preds = outputs.cpu().detach().numpy()
+            flattened_preds = preds.flatten().tolist()
 
-    total, TN, TP, FP, FN = 0 ,0, 0, 0, 0
-    for i, true_value in enumerate(gt):
-        predicted_legible = predictions[i] == 1
-        if true_value == 0 and not predicted_legible:
-            TN += 1
-        elif true_value != 0 and predicted_legible:
-            TP += 1
-        elif true_value == 0 and predicted_legible:
-            FP += 1
-        elif true_value != 0 and not predicted_legible:
-            FN += 1
-        total += 1
+            results += flattened_preds
+            tracks += track
+            gt += label
 
-    print(f'Correct {TP+TN} out of {total}. Accuracy {100*(TP+TN)/total}%.')
-    print(f'TP={TP}, TN={TN}, FP={FP}, FN={FN}')
-    Pr = TP / (TP + FP)
-    Recall = TP / (TP + FN)
-    print(f"Precision={Pr}, Recall={Recall}")
-    print(f"F1={2*Pr*Recall/(Pr+Recall)}")
+    # Evaluate tracklet-level accuracy
+    unique_tracks = np.unique(np.array(tracks))
+    result_dict = {key: [] for key in unique_tracks}
+    track_gt = {key: 0 for key in unique_tracks}
 
-    print(f"Accuracy {subset}:{epoch_acc}")
-    print(f"{running_corrects}, {dataset_sizes[subset]}")
+    for i, result in enumerate(results):
+        result_dict[tracks[i]].append(round(result))
+        track_gt[tracks[i]] = gt[i]
 
-    if not result_path is None and len(result_path) > 0:
+    correct = sum(1 for track in result_dict.keys() 
+                  if (len(np.nonzero(result_dict[track])[0]) == 0 and track_gt[track] == 0) 
+                  or (len(np.nonzero(result_dict[track])[0]) > 0 and track_gt[track] == 1))
+    
+    print(f"Tracklet-level accuracy: {correct / len(result_dict)}")
+    if result_path:
         with open(result_path, 'w') as f:
-            for i, name in enumerate(img_names):
-                f.write(f"{name},{round(raw_predictions[i], 2)}\n")
+            for track in result_dict.keys():
+                f.write(f"{track} {result_dict[track]} {track_gt[track]}\n")
 
-    return epoch_acc
+    return correct / len(result_dict)
 
 
 # run inference on a list of files
@@ -401,7 +381,7 @@ if __name__ == '__main__':
     parser.add_argument('--new_trained_model_path', help='path to save newly trained model')
     parser.add_argument('--arch', choices=['resnet18', 'simple', 'resnet34', 'vit', 'resnet50', 'convnext'], default='resnet18', help='what architecture to use')
     parser.add_argument('--full_val_dir', help='to use tracklet instead of images for validation specify val dir')
-
+    parser.add_argument('--raw_result_path', help='path to save raw results', required=False, default='raw_result_path.txt')
     args = parser.parse_args()
 
     annotations_file = '_gt.txt'
@@ -410,8 +390,8 @@ if __name__ == '__main__':
     image_dataset_train = JerseyNumberLegibilityDataset(os.path.join(args.data, 'train', 'train' + annotations_file),
                                                         os.path.join(args.data, 'train', 'images'), 'train', isBalanced=True, arch=args.arch)
     if not args.train and not args.finetune:
-        image_dataset_test = JerseyNumberLegibilityDataset(os.path.join(args.data, 'test', 'test' + annotations_file),
-                                                       os.path.join(args.data, 'test', 'images'), 'test', arch=args.arch)
+        image_dataset_test = TrackletLegibilityDataset(os.path.join(args.full_val_dir, 'val_gt.json'),
+                                                          os.path.join(args.full_val_dir, 'images'), arch=args.arch)
 
     dataloader_train = torch.utils.data.DataLoader(image_dataset_train, batch_size=128,
                                                    shuffle=True, num_workers=4)
@@ -494,10 +474,11 @@ if __name__ == '__main__':
 
     else:
         #load weights
+        print(f"Loading model from {args.trained_model_path} to {device}")
         state_dict = torch.load(args.trained_model_path, map_location=device)
         if hasattr(state_dict, '_metadata'):
             del state_dict._metadata
         model_ft.load_state_dict(state_dict)
         model_ft = model_ft.to(device)
 
-        test_model(model_ft, 'test', result_path=args.raw_result_path)
+        test_model(model_ft, 'val', result_path=args.raw_result_path)

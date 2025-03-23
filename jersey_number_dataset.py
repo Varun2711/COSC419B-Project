@@ -18,6 +18,15 @@ data_transforms = {
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) # Image Net
             #transforms.Normalize(mean=[0.548, 0.529, 0.539], std=[0.268, 0.280, 0.274]) # Hockey
             ]),
+        'convnext':
+            transforms.Compose([
+            transforms.RandomGrayscale(),
+            transforms.ColorJitter(brightness=.5, hue=.3),
+            transforms.Resize((256, 256)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) # Image Net
+            #transforms.Normalize(mean=[0.548, 0.529, 0.539], std=[0.268, 0.280, 0.274]) # Hockey
+            ]),
         'vit':
             transforms.Compose([
                 transforms.RandomGrayscale(),
@@ -37,6 +46,13 @@ data_transforms = {
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) #ImageNet
            #transforms.Normalize(mean=[0.548, 0.529, 0.539], std=[0.268, 0.280, 0.274]) # Hockey
         ]),
+         'convnext':
+            transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) #ImageNet
+           #transforms.Normalize(mean=[0.548, 0.529, 0.539], std=[0.268, 0.280, 0.274]) # Hockey
+        ]),
         'vit':
             transforms.Compose([
             transforms.Resize((224, 224)),
@@ -47,6 +63,13 @@ data_transforms = {
     },
     'test': {
         'resnet':
+        transforms.Compose([ # same as val
+        transforms.Resize((256, 256)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) #ImageNet
+        #transforms.Normalize(mean=[0.548, 0.529, 0.539], std=[0.268, 0.280, 0.274]) # Hockey
+    ]),
+        'convnext':
         transforms.Compose([ # same as val
         transforms.Resize((256, 256)),
         transforms.ToTensor(),
