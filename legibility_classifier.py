@@ -7,8 +7,7 @@ from torch.optim import lr_scheduler
 import torch.backends.cudnn as cudnn
 from torch.utils.data import Dataset
 from jersey_number_dataset import JerseyNumberLegibilityDataset, UnlabelledJerseyNumberLegibilityDataset, TrackletLegibilityDataset
-from networks import LegibilityClassifier, LegibilitySimpleClassifier, LegibilityClassifier34, LegibilityClassifierTransformer
-
+from networks import LegibilityClassifier, LegibilitySimpleClassifier, LegibilityClassifier34, LegibilityClassifierTransformer, LegibilityClassifierResNet50, LegibilityClassifierConvNeXTTiny
 import time
 import copy
 import argparse
@@ -347,8 +346,8 @@ def test_model(model, subset, result_path=None):
 def run(image_paths, model_path, threshold=0.5, arch='resnet18'):
     # setup data
     dataset = UnlabelledJerseyNumberLegibilityDataset(image_paths, arch=arch)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=4,
-                                                  shuffle=False, num_workers=4)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=128,
+                                                  shuffle=False, num_workers=0)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     cudnn.benchmark = True
 
@@ -400,7 +399,7 @@ if __name__ == '__main__':
     parser.add_argument('--data', help='data root dir')
     parser.add_argument('--trained_model_path', help='trained model to use for testing or to load for finetuning')
     parser.add_argument('--new_trained_model_path', help='path to save newly trained model')
-    parser.add_argument('--arch', choices=['resnet18', 'simple', 'resnet34', 'vit'], default='resnet18', help='what architecture to use')
+    parser.add_argument('--arch', choices=['resnet18', 'simple', 'resnet34', 'vit', 'resnet50', 'convnext'], default='resnet18', help='what architecture to use')
     parser.add_argument('--full_val_dir', help='to use tracklet instead of images for validation specify val dir')
 
     args = parser.parse_args()
@@ -414,18 +413,18 @@ if __name__ == '__main__':
         image_dataset_test = JerseyNumberLegibilityDataset(os.path.join(args.data, 'test', 'test' + annotations_file),
                                                        os.path.join(args.data, 'test', 'images'), 'test', arch=args.arch)
 
-    dataloader_train = torch.utils.data.DataLoader(image_dataset_train, batch_size=4,
+    dataloader_train = torch.utils.data.DataLoader(image_dataset_train, batch_size=128,
                                                    shuffle=True, num_workers=4)
 
     if not args.train and not args.finetune:
-        dataloader_test = torch.utils.data.DataLoader(image_dataset_test, batch_size=4,
+        dataloader_test = torch.utils.data.DataLoader(image_dataset_test, batch_size=128,
                                                   shuffle=False, num_workers=4)
 
     # use full validation set during training
     if use_full_validation:
         image_dataset_full_val = TrackletLegibilityDataset(os.path.join(args.full_val_dir, 'val_gt.json'),
                                                           os.path.join(args.full_val_dir, 'images'), arch=args.arch)
-        dataloader_full_val = torch.utils.data.DataLoader(image_dataset_full_val, batch_size=4,
+        dataloader_full_val = torch.utils.data.DataLoader(image_dataset_full_val, batch_size=128,
                                                      shuffle=False, num_workers=4)
         image_datasets = {'train': image_dataset_train, 'val': image_dataset_full_val}
         dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
@@ -438,7 +437,7 @@ if __name__ == '__main__':
     else:
         image_dataset_val = JerseyNumberLegibilityDataset(os.path.join(args.data, 'val', 'val' + annotations_file),
                                                           os.path.join(args.data, 'val', 'images'), 'val', arch=args.arch)
-        dataloader_val = torch.utils.data.DataLoader(image_dataset_val, batch_size=4,
+        dataloader_val = torch.utils.data.DataLoader(image_dataset_val, batch_size=128,
                                                      shuffle=True, num_workers=4)
         image_datasets = {'train': image_dataset_train, 'val': image_dataset_val}
         dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
@@ -450,6 +449,10 @@ if __name__ == '__main__':
         model_ft = LegibilitySimpleClassifier()
     elif args.arch == 'vit':
         model_ft = LegibilityClassifierTransformer()
+    elif args.arch == 'resnet50':
+        model_ft = LegibilityClassifierResNet50()
+    elif args.arch == 'convnext':
+        model_ft = LegibilityClassifierConvNeXTTiny()
     else:
         model_ft = LegibilityClassifier34()
 
