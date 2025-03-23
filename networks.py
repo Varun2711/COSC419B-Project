@@ -184,3 +184,19 @@ class LegibilitySimpleClassifier(nn.Module):
         x = self.leaky_relu(self.linear1(x))
         x = F.sigmoid(self.linear2(x))
         return x
+
+class LegibilityClassifierEfficientNet(nn.Module):
+    def __init__(self, train=False, finetune=False):
+        super().__init__()
+        self.model_ft = models.efficientnet_v2_s(pretrained=True)
+        if finetune:
+            for param in self.model_ft.parameters():
+                param.requires_grad = False
+        num_ftrs = self.model_ft.classifier[1].in_features
+        self.model_ft.classifier[1] = nn.Linear(num_ftrs, 1)
+        self.model_ft.classifier[1].requires_grad = True
+
+    def forward(self, x):
+        x = self.model_ft(x)
+        x = F.sigmoid(x)
+        return x
