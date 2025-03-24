@@ -1,4 +1,4 @@
-import os
+import os, json
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -31,7 +31,8 @@ def test_model(cfg):
         image_dir=data_dir, gt_file=gt_file, transform=test_transform
     )
 
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, 
+        num_workers=4, prefetch_factor=2)
 
     model = TwoDigitClassifier(model_arch).to(device)
     model.load_state_dict(torch.load(os.path.join(cfg["model_dir"], saved_model)))
@@ -41,8 +42,11 @@ def test_model(cfg):
 
     # Tracklet-level test
     accuracy = test_model_grouped(model, test_loader, device)
+    print(f"Tracklet-level Accuracy: {accuracy * 100:.2f}%")
 
-    print(f"Group Accuracy: {accuracy * 100:.2f}%")
+    # Image-level test
+    # accuracy = test_model_image(model, test_loader, device)
+    # print(f"Image-level Accuracy: {accuracy * 100:.2f}%")
 
 
 # Image-level test function
@@ -53,7 +57,7 @@ def test_model_image(model, test_loader, device):
 
     with torch.no_grad():
         test_loop = tqdm(test_loader, desc="Testing", leave=False)
-        for images, (digits1, digits2) in test_loop:
+        for images, (digits1, digits2), _, _ in test_loop:
             images = images.to(device)
             digits1 = digits1.to(device)
             digits2 = digits2.to(device)
@@ -74,62 +78,82 @@ def test_model_image(model, test_loader, device):
 
 
 # Tracklet-level test function
-def test_model_grouped(model, test_loader, device):
+def test_model_grouped(model, test_loader, device, confidence_threshold=0.6):
     model.eval()
-    group_predictions = defaultdict(list)  # Store predictions for each group
+    group_scores = defaultdict(lambda: defaultdict(float))  # {group_id: {pred_number: total_confidence}}
     group_labels = {}  # Store ground truth labels for each group
 
-    # Iterate through the test dataset
     with torch.no_grad():
         test_loop = tqdm(test_loader, desc="Testing", leave=False)
-        for images, (digits1, digits2), group_ids in test_loop:
+        for images, (digits1, digits2), group_ids, _ in test_loop:
             images = images.to(device)
             digits1 = digits1.to(device)
             digits2 = digits2.to(device)
 
             # Forward pass
-            pred1, pred2 = model(images)
+            logits1, logits2 = model(images)
+            
+            # Convert logits to probabilities
+            probs1 = torch.softmax(logits1, dim=1)
+            probs2 = torch.softmax(logits2, dim=1)
+            
+            # Get predictions and confidences
+            pred1 = torch.argmax(probs1, dim=1).cpu().numpy()
+            pred2 = torch.argmax(probs2, dim=1).cpu().numpy()
+            conf1 = probs1.max(dim=1).values.cpu().numpy()
+            conf2 = probs2.max(dim=1).values.cpu().numpy()
 
-            # Get predictions
-            pred1 = torch.argmax(pred1, dim=1).cpu().numpy()  # First digit
-            pred2 = torch.argmax(pred2, dim=1).cpu().numpy()  # Second digit
-
-            # Combine predictions into jersey numbers
-            for i, (d1, d2) in enumerate(zip(pred1, pred2)):
-                if d2 == 10:  # "empty" class
-                    pred_number = str(d1)
+            for i in range(len(pred1)):
+                # Handle empty second digit case
+                is_single_digit = (pred2[i] == 10)
+                
+                # Calculate effective confidence
+                digit_conf1 = conf1[i]
+                digit_conf2 = 1.0 if is_single_digit else conf2[i]
+                
+                # Confidence filtering
+                if digit_conf1 < confidence_threshold or \
+                   (not is_single_digit and digit_conf2 < confidence_threshold):
+                    continue  # Skip low-confidence predictions
+                
+                # Calculate weighted confidence score
+                total_conf = digit_conf1 * (digit_conf2 if not is_single_digit else 1.0)
+                
+                # Format prediction
+                if is_single_digit:
+                    pred_number = str(pred1[i])
                 else:
-                    pred_number = f"{d1}{d2}"
+                    pred_number = f"{pred1[i]}{pred2[i]}"
+                
+                # Store confidence score for this prediction
+                group_scores[group_ids[i]][pred_number] += total_conf
 
-                # Store prediction for the group
-                group_predictions[group_ids[i]].append(pred_number)
+                # Store ground truth (only need to do this once per group)
+                if group_ids[i] not in group_labels:
+                    if digits2[i].item() == 10:  # Single-digit label
+                        group_labels[group_ids[i]] = str(digits1[i].item())
+                    else:
+                        group_labels[group_ids[i]] = f"{digits1[i].item()}{digits2[i].item()}"
 
-            # Store ground truth labels for the group
-            for i, group_id in enumerate(group_ids):
-                if group_id not in group_labels:
-                    if digits2[i].item() == 10:  # Single-digit
-                        group_labels[group_id] = str(digits1[i].item())
-                    else:  # Double-digit
-                        group_labels[group_id] = (
-                            f"{digits1[i].item()}{digits2[i].item()}"
-                        )
-
-    # Perform majority voting for each group
+    # Calculate accuracy
     correct = 0
     total = 0
-    for group_id, predictions in group_predictions.items():
-        # Get the most frequent prediction
-        from collections import Counter
-
-        voted_prediction = Counter(predictions).most_common(1)[0][0]
-
-        # Compare with ground truth
-        if voted_prediction == group_labels[group_id]:
+    test_res_dict = {}
+    for group_id, scores in group_scores.items():
+        if not scores:  # No valid predictions after filtering
+            voted_prediction = "-1"
+        else:
+            # Get prediction with highest accumulated confidence
+            voted_prediction = max(scores.items(), key=lambda x: x[1])[0]
+        
+        if voted_prediction == group_labels.get(group_id, "-1"):
             correct += 1
         total += 1
+        test_res_dict[group_id] = int(voted_prediction)
 
-    # Calculate group accuracy
-    accuracy = correct / total
+    with open("output_0.005.json", "w") as f:
+        json.dump(test_res_dict, f)
+    accuracy = correct / total if total > 0 else 0.0
     return accuracy
 
 

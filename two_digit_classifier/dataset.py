@@ -28,6 +28,7 @@ class StructuredJerseyNumberDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path, label, group_id = self.samples[idx]
+        filename = os.path.basename(img_path)
         image = Image.open(img_path).convert("RGB")
 
         if self.transform:
@@ -41,7 +42,7 @@ class StructuredJerseyNumberDataset(Dataset):
             digit1 = label // 10
             digit2 = label % 10
 
-        return image, (digit1, digit2), group_id
+        return image, (digit1, digit2), group_id, filename
 
 
 class AllInOneJerseyNumberDataset(Dataset):
@@ -70,6 +71,7 @@ class AllInOneJerseyNumberDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path, label, group_id = self.samples[idx]
+        filename = os.path.basename(img_path)
         image = Image.open(img_path).convert("RGB")
 
         if self.transform:
@@ -83,5 +85,4 @@ class AllInOneJerseyNumberDataset(Dataset):
             digit1 = label // 10
             digit2 = label % 10
 
-        return image, (digit1, digit2), group_id
-
+        return image, (digit1, digit2), group_id, filename
