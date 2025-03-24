@@ -838,7 +838,7 @@ def generate_crops_for_split(source, target, split):
     generate_json(all_images, input_json)
 
     print("Extracting pose")
-    command = f"conda run -n {pose_env} python3 pose.py {pose_home}/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_huge_coco_256x192.py \
+    command = f"conda run -n {pose_env} python pose.py {pose_home}/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_huge_coco_256x192.py \
         {pose_home}/checkpoints/vitpose-h.pth --img-root / --json-file {input_json} \
         --out-json {output_json}"
     success = os.system(command) == 0
