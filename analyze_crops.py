@@ -91,8 +91,8 @@ def compute_key_info_and_save():
     print(f"Overall Mean Height: {overall_mean_height}")
     print()
 
-    # Save overall statistics to a file in dl_project/prepossess/
-    output_dir = "dl_project/prepossess"
+    # Save overall statistics to a file in dl_project/preprocess/
+    output_dir = "dl_project/preprocess"
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, output_file_name)
     with open(output_file, "w") as f:

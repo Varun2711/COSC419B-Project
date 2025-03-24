@@ -4,11 +4,11 @@ import cv2
 def resize_images():
     # Folder paths
     input_folder = "out/SoccerNetResults/crops/imgs"
-    output_folder = "dl_project/prepossess/resized_imgs"  # TODO: file name should come from the input path
+    output_folder = "dl_project/preprocess/resized_imgs"  # TODO: file name should come from the input path
     os.makedirs(output_folder, exist_ok=True)
 
     # Read stats from the stats file
-    stats_file = "dl_project/prepossess/crops_image_stats.txt"
+    stats_file = "dl_project/preprocess/crops_image_stats.txt"
     try:
         with open(stats_file, "r") as f:
             lines = f.readlines()

@@ -4,7 +4,7 @@ import shutil
 
 def group_images_by_track():
     # Define source and destination folders.
-    src_folder = "dl_project/prepossess/RealESRGAN_x4plus_test_imgs"
+    src_folder = "dl_project/preprocess/RealESRGAN_x4plus_test_imgs"
     dst_folder = "dl_project/reorganize/RealESRGAN_x4plus_test_imgs_by_track"
 
     # Create the destination folder if it doesn't exist.

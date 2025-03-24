@@ -99,8 +99,8 @@ def save_original_greyscale():
     """
     Convert each resized image (without augmentation) to greyscale and save it in a dedicated folder.
     """
-    input_folder = "dl_project/prepossess/RealESRGAN_x4plus_train_imgs"
-    output_folder = "dl_project/prepossess/augmented_RealESRGAN_x4plus_train_GREYSCALE/pure"
+    input_folder = "dl_project/preprocess/RealESRGAN_x4plus_train_imgs"
+    output_folder = "dl_project/preprocess/augmented_RealESRGAN_x4plus_train_GREYSCALE/pure"
     os.makedirs(output_folder, exist_ok=True)
 
     for filename in os.listdir(input_folder):
@@ -121,9 +121,9 @@ def save_original_greyscale():
 # ---------------------------
 def apply_augmentations():
     # Input folder: resized images produced by resize_crops.py
-    input_folder = "dl_project/prepossess/RealESRGAN_x4plus_train_imgs"
+    input_folder = "dl_project/preprocess/RealESRGAN_x4plus_train_imgs"
     # Base folder for augmented images
-    base_output_folder = "dl_project/prepossess/augmented_RealESRGAN_x4plus_train_GREYSCALE"  #TODO: file name should come from the input path
+    base_output_folder = "dl_project/preprocess/augmented_RealESRGAN_x4plus_train_GREYSCALE"  #TODO: file name should come from the input path
     os.makedirs(base_output_folder, exist_ok=True)
 
     for filename in os.listdir(input_folder):
