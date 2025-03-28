@@ -1,6 +1,10 @@
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
+import torch.nn as nn
+import torch.nn.functional as F
+from torchvision import models
+import torch
 
 class JerseyNumberClassifier(nn.Module):
 
@@ -60,7 +64,6 @@ class SimpleJerseyNumberClassifier(nn.Module):
         return x
 
 
-
 # ResNet18 based model for binary classification
 class LegibilityClassifier(nn.Module):
     def __init__(self, train=False,  finetune=False):
@@ -79,6 +82,49 @@ class LegibilityClassifier(nn.Module):
         x = self.model_ft(x)
         x = F.sigmoid(x)
         return x
+   
+# ResNet50 based model for binary classification 
+class LegibilityClassifierResNet50(nn.Module):
+    def __init__(self, train=False,  finetune=False):
+        super().__init__()
+        self.model_ft = models.resnet50(pretrained=True)
+        if finetune:
+            for param in self.model_ft.parameters():
+                param.requires_grad = False
+        num_ftrs = self.model_ft.fc.in_features
+        self.model_ft.fc = nn.Linear(num_ftrs, 1)
+        self.model_ft.fc.requires_grad = True
+        self.model_ft.layer4.requires_grad = True
+        self.model_ft.avgpool.requires_grad = True
+
+    def forward(self, x):
+        x = self.model_ft(x)
+        x = F.sigmoid(x)
+        return x
+    
+# convnext_tiny based model for binary classification
+class LegibilityClassifierConvNeXTTiny(nn.Module):
+    def __init__(self, train=False, finetune=False):
+        super().__init__()
+        self.model_ft = models.convnext_tiny(pretrained=True)
+        
+        if finetune:
+            for param in self.model_ft.parameters():
+                param.requires_grad = False
+                
+        # Extracting the number of features from the model's final layer
+        num_ftrs = self.model_ft.classifier[2].in_features
+        self.model_ft.classifier[2] = nn.Linear(num_ftrs, 1)  # Change to 1 output for binary classification
+        
+        self.model_ft.classifier[2].requires_grad = True
+        # Optionally enable gradients for other layers if needed
+        self.model_ft.features[-1].requires_grad = True  # Last block
+
+    def forward(self, x):
+        x = self.model_ft(x)
+        x = F.sigmoid(x)  # Apply sigmoid to output for binary classification
+        return x
+    
 
 # ResNet34 based model for binary classification
 class LegibilityClassifier34(nn.Module):
@@ -137,4 +183,20 @@ class LegibilitySimpleClassifier(nn.Module):
         x = x.reshape(x.size(0), -1)
         x = self.leaky_relu(self.linear1(x))
         x = F.sigmoid(self.linear2(x))
+        return x
+
+class LegibilityClassifierEfficientNet(nn.Module):
+    def __init__(self, train=False, finetune=False):
+        super().__init__()
+        self.model_ft = models.efficientnet_v2_s(pretrained=True)
+        if finetune:
+            for param in self.model_ft.parameters():
+                param.requires_grad = False
+        num_ftrs = self.model_ft.classifier[1].in_features
+        self.model_ft.classifier[1] = nn.Linear(num_ftrs, 1)
+        self.model_ft.classifier[1].requires_grad = True
+
+    def forward(self, x):
+        x = self.model_ft(x)
+        x = F.sigmoid(x)
         return x
