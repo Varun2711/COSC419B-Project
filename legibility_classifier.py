@@ -20,8 +20,8 @@ import numpy as np
 
 from sam2.sam import SAM
 
-
 BATCH_SIZE = 64 # global batch size for training the legibility classifier model
+
 
 def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     since = time.time()
