@@ -172,16 +172,18 @@ def setup_sam(root_dir):
     os.chdir(root_dir)
     repo_name = 'sam2'
     src_url = 'https://github.com/davda54/sam'
-
+    
     if not repo_name in os.listdir(root_dir):
         # clone source repo
+        print(f"Checking if {repo_name} exists in {root_dir}")
+        print(f"git clone --recurse-submodules {src_url} {os.path.join(root_dir, repo_name)}")
         os.system(f"git clone --recurse-submodules {src_url} {os.path.join(root_dir, repo_name)}")
     print(f'setup_sam(): ======================= end =======================')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('dataset', default='all', help="Options: all, SoccerNet, Hockey")
+    parser.add_argument('--dataset', default='SoccerNet', help="Options: all, SoccerNet, Hockey", required=False)
 
     args = parser.parse_args()
 
