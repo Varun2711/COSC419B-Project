@@ -1,4 +1,17 @@
-# A General Framework for Jersey Number Recognition in Sports
+# COSC 419B - Deep Learning
+
+## Group Project: Jersey Number Recognition Model
+
+Members
+
+- Mark Liu
+- Dina El-Kholy
+- Kaycee Goel
+- Pinjing Xu
+- Varun Patel
+
+## A General Framework for Jersey Number Recognition in Sports
+
 Code, data, and model weights for paper  [A General Framework for Jersey Number Recognition in Sports](https://openaccess.thecvf.com/content/CVPR2024W/CVsports/papers/Koshkina_A_General_Framework_for_Jersey_Number_Recognition_in_Sports_Video_CVPRW_2024_paper.pdf) (Maria Koshkina, James H. Elder).
 
 ![Pipeline](docs/soccer_pipeline.png)

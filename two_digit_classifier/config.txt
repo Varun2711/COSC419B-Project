@@ -1,0 +1,6 @@
+train_data_dir = ../data/Preprocessing/SuperRes/train
+train_gt_file = ../data/SoccerNet/train/train_gt.json
+test_data_dir = ../data/Preprocessing/SuperRes/test
+test_gt_file = ../data/SoccerNet/test/test_gt.json
+model_dir = models/
+default_model = resnet18_bs32_epoch10.pth
