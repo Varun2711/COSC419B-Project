@@ -4,11 +4,11 @@
 
 Members
 
-- Mark Liu
-- Dina El-Kholy
-- Kaycee Goel
-- Pinjing Xu
-- Varun Patel
+- Mark Liu ([@y2663liu](https://github.com/y2663liu))
+- Dina El-Kholy ([@dina-adel](https://github.com/dina-adel))
+- Kaycee Goel ([@AngryMagnets](https://github.com/AngryMagnets))
+- Pinjing Xu ([@CafeAuLait-CC](https://github.com/CafeAuLait-CC))
+- Varun Patel (Repo owner [@Varun2711](https://github.com/Varun2711))
 
 ## A General Framework for Jersey Number Recognition in Sports
 
