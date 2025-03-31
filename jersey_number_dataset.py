@@ -6,17 +6,40 @@ import pandas as pd
 import json
 from PIL import Image
 from torchvision import transforms
+from super_image import EdsrModel, ImageLoader
+from PIL import ImageEnhance
+import torch.multiprocessing as mp
+mp.set_start_method('spawn', force=True)
+
+
+def unnormalize(img):
+    """ Un-normalizes an ImageNet-normalized image """
+    mean = np.array([0.485, 0.456, 0.406]).reshape(3, 1, 1)  # Reshape to (3, 1, 1)
+    std = np.array([0.229, 0.224, 0.225]).reshape(3, 1, 1)   # Reshape to (3, 1, 1)
+    img = img * std + mean  # Reverse the normalization
+    img = np.clip(img, 0, 1)  # Ensure values are in [0,1] range
+    return img
+
+# Load pre-trained EDSR model
+sr_model = EdsrModel.from_pretrained('eugenesiow/edsr-base', scale=4)  # Adjust scale as needed
+
+class SuperResolutionTransform:
+    def __call__(self, img):
+        preds = sr_model(img)
+        return preds
 
 data_transforms = {
     'train': {
         'resnet':
             transforms.Compose([
-            transforms.RandomGrayscale(),
-            transforms.ColorJitter(brightness=.5, hue=.3),
-            transforms.Resize((256, 256)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) # Image Net
-            #transforms.Normalize(mean=[0.548, 0.529, 0.539], std=[0.268, 0.280, 0.274]) # Hockey
+                # SuperResolutionTransform(),
+                transforms.Grayscale(num_output_channels=3),
+                transforms.ColorJitter(brightness=0.4, contrast=4, saturation=0.3),
+                transforms.Resize((256, 256)),
+                transforms.RandomAdjustSharpness(4),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                #transforms.Normalize(mean=[0.548, 0.529, 0.539], std=[0.268, 0.280, 0.274]) # Hockey
             ]),
         'convnext':
             transforms.Compose([
@@ -50,6 +73,7 @@ data_transforms = {
     'val': {
         'resnet':
             transforms.Compose([
+            transforms.Grayscale(num_output_channels=3),
             transforms.Resize((256, 256)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) #ImageNet
@@ -82,6 +106,7 @@ data_transforms = {
     'test': {
         'resnet':
         transforms.Compose([ # same as val
+        transforms.Grayscale(num_output_channels=3),
         transforms.Resize((256, 256)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) #ImageNet
@@ -236,9 +261,12 @@ class JerseyNumberLegibilityDataset(Dataset):
     def __getitem__(self, idx):
         img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
         image = Image.open(img_path).convert('RGB')
+        image = ImageEnhance.Color(image).enhance(1.5)
+        image = image.filter(ImageEnhance.ImageFilter.EDGE_ENHANCE)
         label = self.img_labels.iloc[idx, 1]
         if self.transform:
             image = self.transform(image)
-
+        # image_image = transforms.ToPILImage()(unnormalize(image))    
+        # image_image.save(f"processed_{self.img_labels.iloc[idx, 0]}")
         return image, label, self.img_labels.iloc[idx, 0]
 
