@@ -21,11 +21,18 @@ import torch
 
 from sam2.sam import SAM
 
+<<<<<<< HEAD
 
 BATCH_SIZE = 128 # global batch size for training the legibility classifier model
 NUM_EPOCHS = 25 # number of epochs to train the legibility classifier model
 
 def train_model(model, criterion, optimizer, scheduler, num_epochs=NUM_EPOCHS):
+=======
+BATCH_SIZE = 64 # global batch size for training the legibility classifier model
+
+
+def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
+>>>>>>> 793f016dc0d57097ee7f8a40a68e54217ec09c94
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())

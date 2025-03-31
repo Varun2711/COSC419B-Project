@@ -23,7 +23,7 @@ Clone current repo.
 Create conda environment and install requirements.
 Code makes use of the several repositories. Run 
 ```
-python3 setup.py 
+python setup.py 
 ```
 
 to automatically clone, setup a separate conda environment for each and fetch models. 
@@ -72,23 +72,23 @@ Update configuration.py if required to set custom path to data or dependencies.
 ## Inference:
 To run the full inference pipeline for SoccerNet:
 ```
-python3 main.py SoccerNet test
+python main.py SoccerNet test
 ```
 To run legibility and jersey number inference for hockey:
 ```
-python3 main.py Hockey test
+python main.py Hockey test
 ```
 Update actions in main.py actions list to run steps selectively.
 
 ## Train (Hockey)
 Train legibility classifier:
 ```
-python3 legibility_classifier.py --train --arch resnet34 --sam --data <new-dataset-directory> --trained_model_path ./experiments/hockey_legibility.pth
+python legibility_classifier.py --train --arch resnet34 --sam --data <new-dataset-directory> --trained_model_path ./experiments/hockey_legibility.pth
 ```
 
 Fine-tune PARSeq STR for hockey number recognition:
 ```
-python3 main.py Hockey train --train_str
+python main.py Hockey train --train_str
 ```
 
 Trained model will be under str/parseq/outputs
@@ -99,13 +99,13 @@ Weak labels are obtained by using models trained on hockey data.
 
 Train legibility classifier for it:
 ```
-python3 legibility_classifier.py --finetune --arch resnet34 --sam --data <new-dataset-directory>  --full_val_dir
+python legibility_classifier.py --finetune --arch resnet34 --sam --data <new-dataset-directory>  --full_val_dir
 <new-dataset-directory>/val --trained_model_path ./experiments/hockey_legibility.pth --new_trained_model_path ./experiments/sn_legibility.pth
 ```
 
 Fine-tune PARSeq on weakly-labelled SoccerNet data:
 ```
-python3 main.py SoccerNet train --train_str
+python main.py SoccerNet train --train_str
 ```
 
 Trained model will be under str/parseq/outputs.

@@ -3,6 +3,7 @@ import os
 import warnings
 import json
 import sys
+from tqdm import tqdm
 
 ROOT = './pose/ViTPose/'
 sys.path.append(str(ROOT))  # add ROOT to PATH
@@ -90,9 +91,13 @@ def main():
     output_layer_names = None
 
     results = []
+    if os.path.exists(args.out_json):
+        print(f'pose.py: main() cache {args.out_json} exists, skipping pose detection... ')
+        return
 
     # process each image
-    for i in range(len(img_keys)):
+    total_images_num = len(img_keys)
+    for i in tqdm(range(len(img_keys)), desc="Processing"):
         # get bounding box annotations
         image_id = img_keys[i]
         image = coco.loadImgs(image_id)[0]
@@ -119,7 +124,7 @@ def main():
             dataset_info=dataset_info,
             return_heatmap=return_heatmap,
             outputs=output_layer_names)
-
+        # print(f"pose.py: main() ({i}/{total_images_num}) processed image {image['file_name']}")
         # print(pose_results)
         results.append(
             {"img_name": image['file_name'], "id": image_id, "keypoints": pose_results[0]['keypoints'].tolist()})
@@ -144,7 +149,10 @@ def main():
 
     if args.out_json != '':
         with open(args.out_json, 'w') as fp:
+            print(f'pose.py: main() writing results to {args.out_json}...')
             json.dump({"pose_results": results}, fp)
+    else:
+        print(f'pose.py: main() there is no valid output path given!')
 
 
 if __name__ == '__main__':

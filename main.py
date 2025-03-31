@@ -150,6 +150,70 @@ def get_soccer_net_legibility_results(args, use_filtered=False, filter='sim', ex
 
     return legible_tracklets, illegible_tracklets
 
+def get_soccer_net_legibility_results_after_sr(args, use_filtered = False, filter = 'sim', exclude_balls=True):
+    # root_dir = config.dataset['SoccerNet']['root_dir']
+    # image_dir = config.dataset['SoccerNet'][args.part]['images']
+    path_to_images = "dl_project/reorganize/RealESRGAN_x4plus_test_imgs_by_track"
+    tracklets = os.listdir(path_to_images)
+    threshold_sr = 0.005
+
+    if use_filtered:
+        if filter == 'sim':
+            path_to_filter_results = os.path.join(config.dataset['SoccerNet']['working_dir'],
+                                                  config.dataset['SoccerNet'][args.part]['sim_filtered'])
+        else:
+            path_to_filter_results = os.path.join(config.dataset['SoccerNet']['working_dir'],
+                                                  config.dataset['SoccerNet'][args.part]['gauss_filtered'])
+        with open(path_to_filter_results, 'r') as f:
+            filtered = json.load(f)
+
+    legible_tracklets = {}
+    illegible_tracklets = []
+
+    if exclude_balls:
+        updated_tracklets = []
+        soccer_ball_list = os.path.join(config.dataset['SoccerNet']['working_dir'],
+                                        config.dataset['SoccerNet'][args.part]['soccer_ball_list'])
+        with open(soccer_ball_list, 'r') as f:
+            ball_json = json.load(f)
+        ball_list = ball_json['ball_tracks']
+        for track in tracklets:
+            if not track in ball_list:
+                updated_tracklets.append(track)
+        tracklets = updated_tracklets
+
+
+    for directory in tqdm(tracklets):
+        track_dir = os.path.join(path_to_images, directory)
+        if use_filtered:
+            images = filtered[directory]
+        else:
+            images = os.listdir(track_dir)
+        images_full_path = [os.path.join(track_dir, x) for x in images]
+        track_results = lc.run(images_full_path, config.dataset['SoccerNet']['legibility_model'], arch=config.dataset['SoccerNet']['legibility_model_arch'], threshold=threshold_sr)
+        legible = list(np.nonzero(track_results))[0]
+        if len(legible) == 0:
+            illegible_tracklets.append(directory)
+        else:
+            legible_images = [images_full_path[i] for i in legible]
+            legible_tracklets[directory] = legible_images
+
+    # save results
+    json_object = json.dumps(legible_tracklets, indent=4)
+    output_fold_path = "dl_project/test_sr_LC_" + str(threshold_sr)
+    os.makedirs(output_fold_path, exist_ok=True)
+
+    full_legibile_path = os.path.join(output_fold_path, config.dataset['SoccerNet'][args.part]['legible_result'])
+    with open(full_legibile_path, "w") as outfile:
+        outfile.write(json_object)
+
+    full_illegibile_path = os.path.join(output_fold_path, config. dataset['SoccerNet'][args.part]['illegible_result'])
+    json_object = json.dumps({'illegible': illegible_tracklets}, indent=4)
+    with open(full_illegibile_path, "w") as outfile:
+        outfile.write(json_object)
+
+    return legible_tracklets, illegible_tracklets
+
 def generate_json_for_pose_estimator(args, legible = None):
     all_files = []
     if not legible is None:
@@ -201,7 +265,7 @@ def train_parseq(args):
         current_dir = os.getcwd()
         os.chdir(parseq_dir)
         data_root = os.path.join(current_dir, config.dataset['Hockey']['root_dir'], config.dataset['Hockey']['numbers_data'])
-        command = f"conda run -n {config.str_env} python3 train.py +experiment=parseq dataset=real data.root_dir={data_root} trainer.max_epochs=25 " \
+        command = f"conda run --live-stream -n {config.str_env} python train.py +experiment=parseq dataset=real data.root_dir={data_root} trainer.max_epochs=25 " \
                   f"pretrained=parseq trainer.devices=1 trainer.val_check_interval=1 data.batch_size=128 data.max_label_length=2"
         success = os.system(command) == 0
         os.chdir(current_dir)
@@ -212,7 +276,7 @@ def train_parseq(args):
         current_dir = os.getcwd()
         os.chdir(parseq_dir)
         data_root = os.path.join(current_dir, config.dataset['SoccerNet']['root_dir'], config.dataset['SoccerNet']['numbers_data'])
-        command = f"conda run -n {config.str_env} python3 train.py +experiment=parseq dataset=real data.root_dir={data_root} trainer.max_epochs=25 " \
+        command = f"conda run --live-stream -n {config.str_env} python train.py +experiment=parseq dataset=real data.root_dir={data_root} trainer.max_epochs=25 " \
                   f"pretrained=parseq trainer.devices=1 trainer.val_check_interval=1 data.batch_size=128 data.max_label_length=2"
         success = os.system(command) == 0
         os.chdir(current_dir)
@@ -230,7 +294,7 @@ def hockey_pipeline(args):
         root_dir = os.path.join(config.dataset["Hockey"]["root_dir"], config.dataset["Hockey"]["legibility_data"])
 
         print("Test legibility classifier")
-        command = f"python3 legibility_classifier.py --data {root_dir} --arch resnet34 --trained_model {config.dataset['Hockey']['legibility_model']}"
+        command = f"python legibility_classifier.py --data {root_dir} --arch resnet34 --trained_model {config.dataset['Hockey']['legibility_model']}"
         success = os.system(command) == 0
         print("Done legibility classifier")
 
@@ -238,7 +302,7 @@ def hockey_pipeline(args):
         print("Predict numbers")
         current_dir = os.getcwd()
         data_root = os.path.join(current_dir, config.dataset['Hockey']['root_dir'], config.dataset['Hockey']['numbers_data'])
-        command = f"conda run -n {config.str_env} python3 str.py  {config.dataset['Hockey']['str_model']}\
+        command = f"conda run --live-stream -n {config.str_env} python str.py  {config.dataset['Hockey']['str_model']}\
             --data_root={data_root}"
         success = os.system(command) == 0
         print("Done predict numbers")
@@ -274,8 +338,8 @@ def soccer_net_pipeline(args):
     # 1. generate and store features for each image in each tracklet
     if args.pipeline['feat']:
         print("Generate features")
-        print(f"conda run -n {config.reid_env} python3 {config.reid_script} --tracklets_folder {image_dir} --output_folder {features_dir}")
-        command = f"conda run -n {config.reid_env} python3 {config.reid_script} --tracklets_folder {image_dir} --output_folder {features_dir}"
+        command = f"conda run --live-stream -n {config.reid_env} python {config.reid_script} --tracklets_folder {image_dir} --output_folder {features_dir}"
+        print("Executing command:", command)
         success = os.system(command) == 0
         print("Success:", success)
         print("Done generating features")
@@ -283,7 +347,7 @@ def soccer_net_pipeline(args):
     #2. identify and remove outliers based on features
     if args.pipeline['filter'] and success:
         print("Identify and remove outliers")
-        command = f"python3 gaussian_outliers.py --tracklets_folder {image_dir} --output_folder {features_dir}"
+        command = f"python gaussian_outliers.py --tracklets_folder {image_dir} --output_folder {features_dir}"
         success = os.system(command) == 0
         print("Done removing outliers")
 
@@ -337,7 +401,7 @@ def soccer_net_pipeline(args):
         #5. run pose estimation and store results
         if success:
             print("Detecting pose")
-            command = f"conda run -n {config.pose_env} python3 pose.py {config.pose_home}/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_huge_coco_256x192.py \
+            command = f"conda run --live-stream -n dl_project python pose.py {config.pose_home}/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/coco/ViTPose_huge_coco_256x192.py \
                 {config.pose_home}/checkpoints/vitpose-h.pth --img-root / --json-file {input_json} \
                 --out-json {output_json}"
             success = os.system(command) == 0
@@ -366,7 +430,7 @@ def soccer_net_pipeline(args):
         print("Predict numbers")
         image_dir = os.path.join(config.dataset['SoccerNet']['working_dir'], config.dataset['SoccerNet'][args.part]['crops_folder'])
 
-        command = f"conda run -n {config.str_env} python3 str.py  {config.dataset['SoccerNet']['str_model']}\
+        command = f"conda run --live-stream -n dl_project python str.py  {config.dataset['SoccerNet']['str_model']}\
             --data_root={image_dir} --batch_size=1 --inference --result_file {str_result_file}"
         success = os.system(command) == 0
         print("Done predict numbers")
@@ -408,16 +472,16 @@ if __name__ == '__main__':
 
     if not args.train_str:
         if args.dataset == 'SoccerNet':
-            actions = {"soccer_ball_filter": True,
-                       "feat": True,
-                       "filter": True,
+            actions = {"soccer_ball_filter": False,
+                       "feat": False,
+                       "filter": False,
                        "legible": True,
                        "legible_eval": False,
-                       "pose": True,
-                       "crops": True,
-                       "str": True,
-                       "combine": True,
-                       "eval": True}
+                       "pose": False,
+                       "crops": False,
+                       "str": False,
+                       "combine": False,
+                       "eval": False}
             args.pipeline = actions
             soccer_net_pipeline(args)
         elif args.dataset == 'Hockey':
