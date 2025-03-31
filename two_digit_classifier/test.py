@@ -17,6 +17,8 @@ def test_model(cfg):
     device = cfg["device"]
     model_arch = cfg["model_arch"]
     saved_model = cfg["saved_model"]
+    output_json = cfg.get("output_json", "cnn_output.json")
+    lc_file = cfg.get("lc_file", "../out/SoccerNetResults/legible.json")
 
     test_transform = transforms.Compose(
         [
@@ -40,9 +42,31 @@ def test_model(cfg):
 
     print(f"Loaded model {model_arch} from {saved_model}")
 
-    # Tracklet-level test
-    accuracy = test_model_grouped(model, test_loader, device)
+    # Load ground truth
+    with open(gt_file, "r") as f:
+        gt = json.load(f)
+
+    # Load legibility classifier results (if available)
+    lc_dict = None
+    if "lc_file" in cfg:
+        with open(lc_file, "r") as f:
+            lc = json.load(f)
+            if isinstance(lc, list):
+                lc_dict = {item.split("_")[0]: 1 for item in lc}
+            else:
+                lc_dict = lc
+        print(f"Loaded LC results from {cfg['lc_file']}")
+
+    # Tracklet-level test with LC handling
+    accuracy, test_res_dict = test_model_grouped(
+        model, test_loader, device, gt, lc_dict, confidence_threshold=0.6
+    )
     print(f"Tracklet-level Accuracy: {accuracy * 100:.2f}%")
+
+    # Save output JSON
+    with open(output_json, "w") as f:
+        json.dump(test_res_dict, f)
+    print(f"Predictions saved to {output_json}")
 
     # Image-level test
     # accuracy = test_model_image(model, test_loader, device)
@@ -78,10 +102,11 @@ def test_model_image(model, test_loader, device):
 
 
 # Tracklet-level test function
-def test_model_grouped(model, test_loader, device, confidence_threshold=0.6):
+def test_model_grouped(model, test_loader, device, gt, lc_dict=None, confidence_threshold=0.6):
     model.eval()
-    group_scores = defaultdict(lambda: defaultdict(float))  # {group_id: {pred_number: total_confidence}}
-    group_labels = {}  # Store ground truth labels for each group
+    group_scores = defaultdict(lambda: defaultdict(float))
+    group_labels = {}
+    test_res_dict = {k: -1 for k in gt.keys()}  # Initialize with all GT keys
 
     with torch.no_grad():
         test_loop = tqdm(test_loader, desc="Testing", leave=False)
@@ -90,72 +115,58 @@ def test_model_grouped(model, test_loader, device, confidence_threshold=0.6):
             digits1 = digits1.to(device)
             digits2 = digits2.to(device)
 
-            # Forward pass
             logits1, logits2 = model(images)
-            
-            # Convert logits to probabilities
             probs1 = torch.softmax(logits1, dim=1)
             probs2 = torch.softmax(logits2, dim=1)
             
-            # Get predictions and confidences
             pred1 = torch.argmax(probs1, dim=1).cpu().numpy()
             pred2 = torch.argmax(probs2, dim=1).cpu().numpy()
             conf1 = probs1.max(dim=1).values.cpu().numpy()
             conf2 = probs2.max(dim=1).values.cpu().numpy()
 
             for i in range(len(pred1)):
-                # Handle empty second digit case
+                group_id = group_ids[i]
                 is_single_digit = (pred2[i] == 10)
-                
-                # Calculate effective confidence
                 digit_conf1 = conf1[i]
                 digit_conf2 = 1.0 if is_single_digit else conf2[i]
-                
-                # Confidence filtering
-                if digit_conf1 < confidence_threshold or \
-                   (not is_single_digit and digit_conf2 < confidence_threshold):
-                    continue  # Skip low-confidence predictions
-                
-                # Calculate weighted confidence score
-                total_conf = digit_conf1 * (digit_conf2 if not is_single_digit else 1.0)
-                
+
+                # Skip if confidence is too low
+                if digit_conf1 < confidence_threshold or (not is_single_digit and digit_conf2 < confidence_threshold):
+                    continue
+
                 # Format prediction
-                if is_single_digit:
-                    pred_number = str(pred1[i])
-                else:
-                    pred_number = f"{pred1[i]}{pred2[i]}"
-                
-                # Store confidence score for this prediction
-                group_scores[group_ids[i]][pred_number] += total_conf
+                pred_number = str(pred1[i]) if is_single_digit else f"{pred1[i]}{pred2[i]}"
+                group_scores[group_id][pred_number] += (digit_conf1 * digit_conf2)
 
-                # Store ground truth (only need to do this once per group)
-                if group_ids[i] not in group_labels:
-                    if digits2[i].item() == 10:  # Single-digit label
-                        group_labels[group_ids[i]] = str(digits1[i].item())
-                    else:
-                        group_labels[group_ids[i]] = f"{digits1[i].item()}{digits2[i].item()}"
+                # Store ground truth once
+                if group_id not in group_labels:
+                    gt_digit1 = digits1[i].item()
+                    gt_digit2 = digits2[i].item()
+                    group_labels[group_id] = str(gt_digit1) if gt_digit2 == 10 else f"{gt_digit1}{gt_digit2}"
 
-    # Calculate accuracy
+    # Calculate accuracy with LC false positive penalty
     correct = 0
-    total = 0
-    test_res_dict = {}
-    for group_id, scores in group_scores.items():
-        if not scores:  # No valid predictions after filtering
-            voted_prediction = "-1"
-        else:
-            # Get prediction with highest accumulated confidence
-            voted_prediction = max(scores.items(), key=lambda x: x[1])[0]
+    total = len(gt)
+    for group_id, gt_label in gt.items():
+        pred = test_res_dict[group_id]
         
-        if voted_prediction == group_labels.get(group_id, "-1"):
+        # Case 1: LC wrongly passed an illegible jersey (GT = -1)
+        if gt_label == -1:
+            if lc_dict and group_id in lc_dict:  # LC marked as legible (false positive)
+                correct -= 1  # Penalize
+            continue  # Skip further checks for GT = -1
+
+        # Case 2: Normal comparison for legible jerseys
+        if str(pred) == str(gt_label):
             correct += 1
-        total += 1
-        test_res_dict[group_id] = int(voted_prediction)
 
-    with open("output_0.005.json", "w") as f:
-        json.dump(test_res_dict, f)
-    accuracy = correct / total if total > 0 else 0.0
-    return accuracy
+        # Update output dict
+        if group_id in group_scores and group_scores[group_id]:
+            voted_pred = max(group_scores[group_id].items(), key=lambda x: x[1])[0]
+            test_res_dict[group_id] = int(voted_pred)
 
+    accuracy = max(correct, correct) / total  # Avoid negative accuracy
+    return accuracy, test_res_dict
 
 if __name__ == "__main__":
     cfg = get_config(require_mode=False, default_mode="test")

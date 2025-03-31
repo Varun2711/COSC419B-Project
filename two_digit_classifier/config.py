@@ -41,7 +41,7 @@ def get_config(require_mode=True, default_mode=None):
     parser = argparse.ArgumentParser(description="Jersey Number Recognition")
     if require_mode:
         parser.add_argument(
-            "mode", choices=["train", "test"], help="Operation mode (train/test)"
+            "mode", choices=["train", "test", "inference"], help="Operation mode (train/test/inference)"
         )
 
     # Add common parameters

@@ -8,10 +8,14 @@ def main():
         from train import train_model
 
         train_model(cfg)
-    else:
+    elif cfg["mode"] == "test":
         from test import test_model
 
         test_model(cfg)
+    else:
+        from inference import run_inference
+
+        run_inference(cfg)
 
 
 if __name__ == "__main__":
