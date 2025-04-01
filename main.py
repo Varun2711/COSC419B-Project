@@ -122,6 +122,23 @@ def get_soccer_net_legibility_results(args, use_filtered=False, filter='sim', ex
     legible_tracklets = {}
     illegible_tracklets = []
     
+    full_legible_path = os.path.join(
+        config.dataset['SoccerNet']['working_dir'],
+        config.dataset['SoccerNet'][args.part]['legible_result']
+    )
+    full_illegible_path = os.path.join(
+        config.dataset['SoccerNet']['working_dir'],
+        config.dataset['SoccerNet'][args.part]['illegible_result']
+    )
+    
+    # skip the whole process if the legibility results already exist :)
+    if os.path.exists(full_legible_path) and os.path.exists(full_illegible_path):
+        with open(full_legible_path, 'r') as f:
+            legible_tracklets = json.load(f)
+        with open(full_legible_path, 'r') as f:
+            legible_tracklets = json.load(f)
+        return legible_tracklets, illegible_tracklets
+    
     print("Processing tracklets in parallel...")
     # Process tracklets in parallel with a thread pool.
     with ThreadPoolExecutor(max_workers=4) as executor:
@@ -134,19 +151,10 @@ def get_soccer_net_legibility_results(args, use_filtered=False, filter='sim', ex
         else:
             legible_tracklets[directory] = legible_images
 
-    # Save results for legible tracklets.
-    full_legible_path = os.path.join(
-        config.dataset['SoccerNet']['working_dir'],
-        config.dataset['SoccerNet'][args.part]['legible_result']
-    )
+    
     with open(full_legible_path, "w") as outfile:
         json.dump(legible_tracklets, outfile, indent=4)
 
-    # Save results for illegible tracklets.
-    full_illegible_path = os.path.join(
-        config.dataset['SoccerNet']['working_dir'],
-        config.dataset['SoccerNet'][args.part]['illegible_result']
-    )
     with open(full_illegible_path, "w") as outfile:
         json.dump({'illegible': illegible_tracklets}, outfile, indent=4)
 
@@ -371,7 +379,7 @@ def soccer_net_pipeline(args):
         image_dir = os.path.join(config.dataset['SoccerNet']['working_dir'], config.dataset['SoccerNet'][args.part]['crops_folder'])
 
         command = f"conda run -n {config.str_env} python3 str.py  {config.dataset['SoccerNet']['str_model']}\
-            --data_root={image_dir} --batch_size=1 --inference --result_file {str_result_file}"
+            --data_root={image_dir} --batch_size=64 --inference --result_file {str_result_file}"
         success = os.system(command) == 0
         print("Done predict numbers")
 
