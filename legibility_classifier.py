@@ -334,10 +334,19 @@ def run(image_paths, model_path, threshold=0.5, arch='resnet18'):
 
     #load model
     state_dict = torch.load(model_path, map_location=device)
-    if arch == 'resnet18':
+    
+    if args.arch == 'resnet18':
         model_ft = LegibilityClassifier()
-    elif arch == 'vit':
+    elif args.arch == 'simple':
+        model_ft = LegibilitySimpleClassifier()
+    elif args.arch == 'vit':
         model_ft = LegibilityClassifierTransformer()
+    elif args.arch == 'resnet50':
+        model_ft = LegibilityClassifierResNet50()
+    elif args.arch == 'convnext':
+        model_ft = LegibilityClassifierConvNeXTTiny()
+    elif args.arch == 'efficientnet':
+        model_ft = LegibilityClassifierEfficientNet()
     else:
         model_ft = LegibilityClassifier34()
 
