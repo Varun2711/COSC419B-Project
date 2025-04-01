@@ -60,6 +60,7 @@ def get_soccer_net_raw_legibility_results(args, use_filtered = True, filter = 'g
 
 
 def get_soccer_net_legibility_results(args, use_filtered=False, filter='sim', exclude_balls=True):
+    print("Args are ", args)
     root_dir = config.dataset['SoccerNet']['root_dir']
     image_dir = config.dataset['SoccerNet'][args.part]['images']
     path_to_images = os.path.join(root_dir, image_dir)
@@ -120,7 +121,8 @@ def get_soccer_net_legibility_results(args, use_filtered=False, filter='sim', ex
 
     legible_tracklets = {}
     illegible_tracklets = []
-
+    
+    print("Processing tracklets in parallel...")
     # Process tracklets in parallel with a thread pool.
     with ThreadPoolExecutor(max_workers=4) as executor:
         results = list(tqdm(executor.map(process_tracklet, tracklets), total=len(tracklets)))
@@ -268,7 +270,8 @@ def soccer_net_pipeline(args):
     # 1. Filter out soccer ball based on images size
     if args.pipeline['soccer_ball_filter']:
         print("Determine soccer ball")
-        success = helpers.identify_soccer_balls(image_dir, soccer_ball_list)
+        if not os.path.exists(soccer_ball_list):
+            success = helpers.identify_soccer_balls(image_dir, soccer_ball_list)
         print("Done determine soccer ball")
 
     # 1. generate and store features for each image in each tracklet
@@ -291,6 +294,7 @@ def soccer_net_pipeline(args):
     if args.pipeline['legible'] and success:
         print("Classifying Legibility:")
         try:
+            print(args)
             legible_dict, illegible_tracklets = get_soccer_net_legibility_results(args, use_filtered=True, filter='gauss', exclude_balls=True)
             #get_soccer_net_raw_legibility_results(args)
             #legible_dict, illegible_tracklets = get_soccer_net_combined_legibility_results(args)
@@ -318,7 +322,6 @@ def soccer_net_pipeline(args):
     #4. generate json for pose-estimation
     if args.pipeline['pose'] and success:
         print("Generating json for pose")
-        print(legible_dict)
         try:
             if legible_dict is None:
                 with open(full_legibile_path, 'r') as openfile:
@@ -361,6 +364,7 @@ def soccer_net_pipeline(args):
 
     str_result_file = os.path.join(config.dataset['SoccerNet']['working_dir'],
                                    config.dataset['SoccerNet'][args.part]['jersey_id_result'])
+    
     #7. run STR system on all crops
     if args.pipeline['str'] and success:
         print("Predict numbers")

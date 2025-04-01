@@ -335,17 +335,17 @@ def run(image_paths, model_path, threshold=0.5, arch='resnet18'):
     #load model
     state_dict = torch.load(model_path, map_location=device)
     
-    if args.arch == 'resnet18':
+    if arch == 'resnet18':
         model_ft = LegibilityClassifier()
-    elif args.arch == 'simple':
+    elif arch == 'simple':
         model_ft = LegibilitySimpleClassifier()
-    elif args.arch == 'vit':
+    elif arch == 'vit':
         model_ft = LegibilityClassifierTransformer()
-    elif args.arch == 'resnet50':
+    elif arch == 'resnet50':
         model_ft = LegibilityClassifierResNet50()
-    elif args.arch == 'convnext':
+    elif arch == 'convnext':
         model_ft = LegibilityClassifierConvNeXTTiny()
-    elif args.arch == 'efficientnet':
+    elif arch == 'efficientnet':
         model_ft = LegibilityClassifierEfficientNet()
     else:
         model_ft = LegibilityClassifier34()
