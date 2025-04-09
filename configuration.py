@@ -18,6 +18,24 @@ dataset = {'SoccerNet':
                  'test': {
                         'images': 'test/images',
                         'gt': 'test/test_gt.json',
+                        'feature_output_folder': 'out/SoccerNetResults/demo',
+                        'illegible_result': 'demo/illegible_demo.json',
+                        'soccer_ball_list': 'demo/soccer_ball_demo.json',
+                        'sim_filtered': 'test/main_subject_0.4.json',
+                        'gauss_filtered': 'test/main_subject_gauss_th=3.5_r=3.json',
+                        'legible_result': 'demo/legible_demo.json',
+                        'raw_legible_result': 'demo/raw_legible_efficientnet_demo.json',
+                        'pose_input_json': 'demo/pose_input_demo.json',
+                        'pose_output_json': 'demo/pose_results_demo.json',
+                        'crops_folder': 'demo/crops_demo',
+                        'jersey_id_result': 'demo/jersey_id_results_demo.json',
+                        'final_result': 'demo/final_results_demo.json'
+                    },
+                 
+                 """
+                 'test': {
+                        'images': 'test/images',
+                        'gt': 'test/test_gt.json',
                         'feature_output_folder': 'out/SoccerNetResults/test',
                         'illegible_result': 'illegible.json',
                         'soccer_ball_list': 'soccer_ball.json',
@@ -31,7 +49,7 @@ dataset = {'SoccerNet':
                         'jersey_id_result': 'jersey_id_results.json',
                         'final_result': 'final_results.json'
                     },
-                 'val': {
+                    """'val': {
                         'images': 'val/images',
                         'gt': 'val/val_gt.json',
                         'feature_output_folder': 'out/SoccerNetResults/val',

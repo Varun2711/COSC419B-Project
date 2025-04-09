@@ -11,8 +11,8 @@ from torchvision import transforms
 from tqdm import tqdm
 
 # Import model components (same as in test.py)
-from mmocr.models.textrecog.recognizers import CRNN
-from mmocr.models.textrecog.postprocessors import CTCPostProcessor
+from mmocr.mmocr.models.textrecog.recognizers import CRNN
+from mmocr.mmocr.models.textrecog.postprocessors import CTCPostProcessor
 
 # Reuse the same model loading function from test.py
 def load_model(model_path, device):
@@ -219,13 +219,14 @@ def run_inference(model, dataloader, device, min_track=0, max_track=1425, ignore
 
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = load_model("../model/crnn_mini_finetuned_5start.pth", device)
+    model_path = "/home/delkholy/COSC519B/COSC419B-Project/mmocr/model/crnn_mini_finetuned_5start.pth"
+    model = load_model(model_path, device)
     
-    challenge_dir = "../data/crops/challenge"
-    output_json_path = "../challenge_predictions.json"
+    challenge_dir = "/home/delkholy/COSC519B/COSC419B-Project/out/SoccerNetResults/challenge_crops/imgs"
+    output_json_path = "../challenge_predictions_mmocr.json"
     
     dataset = InferenceJerseyDataset(img_dir=challenge_dir, transform=inference_transform)
-    dataloader = DataLoader(dataset, batch_size=16, shuffle=False, collate_fn=inference_collate_fn)
+    dataloader = DataLoader(dataset, batch_size=128, shuffle=False, collate_fn=inference_collate_fn)
     
     results = run_inference(model, dataloader, device)
     

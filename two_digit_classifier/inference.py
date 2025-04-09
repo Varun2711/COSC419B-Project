@@ -10,13 +10,16 @@ from tqdm import tqdm
 def run_inference(cfg):
     # Initialize model
     device = cfg["device"]
+    device = torch.device("cpu")
+    print(f"Using device: {device}")
     model = TwoDigitClassifier(cfg["model_arch"]).to(device)
-    model.load_state_dict(torch.load(os.path.join(cfg["model_dir"], cfg["saved_model"])))
+    model.load_state_dict(torch.load(os.path.join(cfg["model_dir"], cfg["saved_model"])), map_location=device)
     model.eval()
     print(f"Loaded model {cfg['model_arch']} from {cfg['saved_model']}")
 
     # Image preprocessing
     transform = transforms.Compose([
+        transforms.Grayscale(num_output_channels=3),
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),

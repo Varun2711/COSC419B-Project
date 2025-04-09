@@ -1,7 +1,7 @@
 import argparse
 import os
 from torch.cuda import is_available as cuda_available
-from torch.mps import is_available as mps_available
+# from torch.mps import is_available as mps_available
 from torch import device as set_torch_device
 
 
@@ -48,7 +48,7 @@ def get_config(require_mode=True, default_mode=None):
     parser.add_argument("--data_dir", help="Override dataset directory")
     parser.add_argument("--gt_file", help="Override ground truth path")
     parser.add_argument(
-        "--batch_size", type=int, default=32, help="Batch size for data loading"
+        "--batch_size", type=int, default=128, help="Batch size for data loading"
     )
     parser.add_argument("--gpu", type=int, default=0, help="GPU device number to use")
 
@@ -77,16 +77,18 @@ def get_config(require_mode=True, default_mode=None):
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     if cuda_available():
         device = set_torch_device("cuda")  # CUDA
-    elif mps_available():
-        device = set_torch_device("mps")  # macOS MPS (Metal Performance Shaders)
+    # elif mps_available():
+    #    device = set_torch_device("mps")  # macOS MPS (Metal Performance Shaders)
     else:
         device = set_torch_device("cpu")
-
+        
+    print(f"Using device: {device}")
+    
     # Resolve file paths
     resolved = {
         "model_dir": config.get("model_dir", "models/"),
         "saved_model": args.saved_model
-        or config.get("default_model", "resnet18_bs32_epoch10.pth"),
+        or config.get("default_model", "resnet18_bs32_epoch20.pth"),
         "data_dir": args.data_dir or config.get(f"{mode}_data_dir"),
         "gt_file": args.gt_file or config.get(f"{mode}_gt_file"),
     }

@@ -141,15 +141,28 @@ def soccer_net_pipeline(args):
     if args.pipeline['feat']:
         print("Generating features...")
         if args.tracklet:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                tracklet_path = os.path.join(image_dir, args.tracklet)
-                if os.path.exists(tracklet_path):
-                    os.symlink(tracklet_path, os.path.join(temp_dir, args.tracklet))
-                    command = f"conda run -n {config.reid_env} python3 {config.reid_script} --tracklets_folder {temp_dir} --output_folder {features_dir}"
-                    success = os.system(command) == 0
-                else:
-                    print(f"Tracklet {args.tracklet} not found.")
-                    success = False
+            # Define a persistent temporary directory
+            temp_dir = "tracklet_processing_demo"
+            os.makedirs(temp_dir, exist_ok=True)  # Ensure the directory exists
+
+            tracklet_path = os.path.join(image_dir, args.tracklet)
+            temp_tracklet_path = os.path.join(temp_dir, args.tracklet)
+
+            print(f"Processing tracklet: {tracklet_path}")
+
+            if os.path.exists(tracklet_path):
+                # Move the tracklet to the temp directory
+                shutil.move(tracklet_path, temp_tracklet_path)
+
+                # Run the command
+                command = f"conda run -n {config.reid_env} python3 {config.reid_script} --tracklets_folder {temp_dir} --output_folder {features_dir}"
+                success = os.system(command) == 0
+
+                # Move the tracklet back to its original location after processing
+                shutil.move(temp_tracklet_path, tracklet_path)
+            else:
+                print(f"Tracklet {args.tracklet} not found.")
+                success = False
         else:
             command = f"conda run -n {config.reid_env} python3 {config.reid_script} --tracklets_folder {image_dir} --output_folder {features_dir}"
             success = os.system(command) == 0
@@ -157,7 +170,9 @@ def soccer_net_pipeline(args):
 
     if args.pipeline['filter'] and success:
         print("Filtering outliers...")
-        command = f"python3 gaussian_outliers.py --tracklets_folder {image_dir} --output_folder {features_dir}"
+        print(image_dir)
+        print(features_dir)
+        command = f"python3 gaussian_outliers.py --tracklets_folder {tracklet_path} --output_folder {features_dir}"
         success = os.system(command) == 0
         print("Done filtering")
 
@@ -169,6 +184,10 @@ def soccer_net_pipeline(args):
             print(f"Error: {e}")
             success = False
         print("Done legibility classification")
+        
+    if legible_dict.keys() == []:
+        print("No legible tracklets found, skipping pose estimation and STR.")
+        exit(0)
 
     if args.pipeline['pose'] and success:
         print("Generating pose JSON...")
@@ -219,16 +238,26 @@ def soccer_net_pipeline(args):
             consolidated_dict = json.load(f)
         with open(gt_path, 'r') as gf:
             gt_dict = json.load(gf)
-        helpers.evaluate_results(consolidated_dict, gt_dict)
-        print("Evaluation complete")
+        # helpers.evaluate_results(consolidated_dict, gt_dict)
+        if consolidated_dict == {}:
+            print("No legible tracklets found :O")
+        else:
+            tracklet_id = args.tracklet if args.tracklet else list(consolidated_dict.keys())[0]
+            print(f"GT was: {gt_dict[tracklet_id]} and predicted was: {consolidated_dict[tracklet_id]}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('dataset', help="Options: 'SoccerNet'")
     parser.add_argument('part', help="Options: 'test', 'val', 'train', 'challenge'")
     parser.add_argument('--tracklet', type=str, help="Specific tracklet ID to process")
-    parser.add_argument('--train_str', action='store_true', default=False, help="Train STR model")
     args = parser.parse_args()
+    
+    directory = "/home/delkholy/COSC519B/COSC419B-Project/out/SoccerNetResults/demo"
+    if os.path.exists(directory):
+        shutil.rmtree(directory)  # Deletes the directory and all its contents
+        print(f"Deleted directory: {directory}")
+    else:
+        print(f"Directory not found: {directory}")
 
     if args.dataset != 'SoccerNet':
         print("This script is modified for SoccerNet only.")
